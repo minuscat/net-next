@@ -97,6 +97,13 @@ static inline void tcp_accecn_fail_mode_set(struct tcp_sock *tp, u8 mode)
 	tp->accecn_fail_mode |= mode;
 }
 
+static inline void tcp_accecn_ace_fail_send_set_retrans(struct request_sock *req,
+							struct tcp_sock *tp)
+{
+	if (req->num_retrans > 1 && tcp_rsk(req)->accecn_ok)
+		tcp_accecn_fail_mode_set(tp, TCP_ACCECN_ACE_FAIL_SEND);
+}
+
 #define TCP_ACCECN_OPT_NOT_SEEN		0x0
 #define TCP_ACCECN_OPT_EMPTY_SEEN	0x1
 #define TCP_ACCECN_OPT_COUNTER_SEEN	0x2
