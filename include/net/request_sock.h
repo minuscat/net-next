@@ -68,7 +68,8 @@ struct request_sock {
 						      *    TS of SYN+ACK
 						      * 2) ACK is validated by BPF kfunc.
 						      */
-	u8				num_timeout:7; /* number of timeouts */
+	u8				num_timeout:7, /* number of timeouts */
+					is_rtx:1;
 	u32				ts_recent;
 	struct timer_list		rsk_timer;
 	const struct request_sock_ops	*rsk_ops;
@@ -153,6 +154,7 @@ reqsk_alloc(const struct request_sock_ops *ops, struct sock *sk_listener,
 	req->syncookie = 0;
 	req->timeout = 0;
 	req->num_timeout = 0;
+	req->is_rtx = 0;
 	req->num_retrans = 0;
 	req->sk = NULL;
 	refcount_set(&req->rsk_refcnt, 0);
