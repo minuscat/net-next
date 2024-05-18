@@ -3067,6 +3067,7 @@ int tcp_disconnect(struct sock *sk, int flags)
 	tp->delivered_ce = 0;
 	tp->accecn_fail_mode = 0;
 	tp->saw_accecn_opt = TCP_ACCECN_OPT_NOT_SEEN;
+	tp->first_data_ack = 0;
 	tcp_accecn_init_counters(tp);
 	tp->prev_ecnfield = 0;
 	tp->accecn_opt_tstamp = 0;
