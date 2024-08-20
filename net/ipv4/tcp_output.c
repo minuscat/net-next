@@ -2005,7 +2005,7 @@ unsigned int tcp_sync_mss(struct sock *sk, u32 pmtu)
 	struct inet_connection_sock *icsk = inet_csk(sk);
 	int mss_now;
 
-	if (icsk->icsk_mtup.search_high > pmtu)
+	if (icsk->icsk_mtup.search_high > pmtu && !tp->mss_cache_set_by_cca)
 		icsk->icsk_mtup.search_high = pmtu;
 
 	mss_now = tcp_mtu_to_mss(sk, pmtu);
@@ -2019,7 +2019,7 @@ unsigned int tcp_sync_mss(struct sock *sk, u32 pmtu)
 
 	return mss_now;
 }
-EXPORT_IPV6_MOD(tcp_sync_mss);
+EXPORT_SYMBOL(tcp_sync_mss);
 
 /* Compute the current effective MSS, taking SACKs and IP options,
  * and even PMTU discovery events into account.
@@ -2035,7 +2035,7 @@ unsigned int tcp_current_mss(struct sock *sk)
 
 	mss_now = tp->mss_cache;
 
-	if (dst) {
+	if (dst && !tp->mss_cache_set_by_cca) {
 		u32 mtu = dst_mtu(dst);
 		if (mtu != inet_csk(sk)->icsk_pmtu_cookie)
 			mss_now = tcp_sync_mss(sk, mtu);
