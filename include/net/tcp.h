@@ -1290,6 +1290,9 @@ struct tcp_congestion_ops {
 	/* override sysctl_tcp_min_tso_segs (optional) */
 	u32 (*min_tso_segs)(struct sock *sk);
 
+	/* override tcp_tso_autosize */
+	u32 (*tso_segs)(struct sock *sk, u32 mss_now);
+
 	/* new value of cwnd after loss (required) */
 	u32  (*undo_cwnd)(struct sock *sk);
 	/* returns the multiplier used in tcp_sndbuf_expand (optional) */
