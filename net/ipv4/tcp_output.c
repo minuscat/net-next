@@ -734,7 +734,7 @@ static __be32 *process_tcp_ao_options(struct tcp_sock *tp,
 	return ptr;
 }
 
-#define NOP_LEFTOVER	((TCPOPT_NOP << 8) | TCPOPT_NOP)
+//#define NOP_LEFTOVER	((TCPOPT_NOP << 8) | TCPOPT_NOP)
 
 /* Write previously computed TCP options to the packet.
  *
@@ -754,10 +754,10 @@ static void tcp_options_write(struct tcphdr *th, struct tcp_sock *tp,
 			      struct tcp_out_options *opts,
 			      struct tcp_key *key)
 {
-	u16 leftover_bytes = NOP_LEFTOVER;      /* replace next NOPs if avail */
+	u8 leftover_highbyte = TCPOPT_NOP;
+	u8 leftover_lowbyte = TCPOPT_NOP;
 	__be32 *ptr = (__be32 *)(th + 1);
 	u16 options = opts->options;	/* mungable copy */
-	int leftover_size = 2;
 
 	if (tcp_key_is_md5(key)) {
 		*ptr++ = htonl((TCPOPT_NOP << 24) | (TCPOPT_NOP << 16) |
@@ -821,12 +821,11 @@ static void tcp_options_write(struct tcphdr *th, struct tcp_sock *tp,
 		} else if (opts->num_accecn_fields == 1) {
 			*ptr++ = htonl((TCPOPT_ACCECN1 << 24) | (len << 16) |
 				       ((e1b >> 8) & 0xffff));
-			leftover_bytes = ((e1b & 0xff) << 8) |
-					 TCPOPT_NOP;
-			leftover_size = 1;
+			leftover_highbyte = e1b & 0xff;
+			leftover_lowbyte = TCPOPT_NOP;
 		} else if (opts->num_accecn_fields == 0) {
-			leftover_bytes = (TCPOPT_ACCECN1 << 8) | len;
-			leftover_size = 2;
+			leftover_highbyte = TCPOPT_ACCECN1;
+                        leftover_lowbyte = len;
 		} else if (opts->num_accecn_fields == 3) {
 			*ptr++ = htonl((TCPOPT_ACCECN1 << 24) | (len << 16) |
 				       ((e1b >> 8) & 0xffff));
@@ -847,20 +846,21 @@ static void tcp_options_write(struct tcphdr *th, struct tcp_sock *tp,
 	}
 
 	if (unlikely(OPTION_SACK_ADVERTISE & options)) {
-		*ptr++ = htonl((leftover_bytes << 16) |
+		*ptr++ = htonl((leftover_highbyte << 24) |
+			       (leftover_lowbyte << 16) |
 			       (TCPOPT_SACK_PERM << 8) |
 			       TCPOLEN_SACK_PERM);
-		leftover_bytes = NOP_LEFTOVER;
-		leftover_size = 2;
+		leftover_highbyte = TCPOPT_NOP;
+		leftover_lowbyte = TCPOPT_NOP;
 	}
 
 	if (unlikely(OPTION_WSCALE & options)) {
 		u8 highbyte = TCPOPT_NOP;
 
-		if (unlikely(leftover_size == 1)) {
-			highbyte = leftover_bytes >> 8;
-			leftover_bytes = NOP_LEFTOVER;
-			leftover_size = 2;
+		if ((leftover_highbyte != TCPOPT_NOP) &&
+		    (leftover_lowbyte  == TCPOPT_NOP)) {
+			highbyte = leftover_highbyte;
+			leftover_highbyte = TCPOPT_NOP;
 		}
 		*ptr++ = htonl((highbyte << 24) |
 			       (TCPOPT_WINDOW << 16) |
@@ -873,12 +873,13 @@ static void tcp_options_write(struct tcphdr *th, struct tcp_sock *tp,
 			tp->duplicate_sack : tp->selective_acks;
 		int this_sack;
 
-		*ptr++ = htonl((leftover_bytes << 16) |
+		*ptr++ = htonl((leftover_highbyte << 24) |
+			       (leftover_lowbyte << 16) |
 			       (TCPOPT_SACK <<  8) |
 			       (TCPOLEN_SACK_BASE + (opts->num_sack_blocks *
 						     TCPOLEN_SACK_PERBLOCK)));
-                leftover_bytes = NOP_LEFTOVER;
-                leftover_size = 2;
+                leftover_highbyte = TCPOPT_NOP;
+                leftover_lowbyte = TCPOPT_NOP;
 
 		for (this_sack = 0; this_sack < opts->num_sack_blocks;
 		     ++this_sack) {
@@ -887,12 +888,14 @@ static void tcp_options_write(struct tcphdr *th, struct tcp_sock *tp,
 		}
 
 		tp->rx_opt.dsack = 0;
-	} else if (unlikely(leftover_bytes != NOP_LEFTOVER)) {
-		*ptr++ = htonl((leftover_bytes << 16) |
+	} else if ((leftover_highbyte != TCPOPT_NOP) ||
+		   (leftover_lowbyte != TCPOPT_NOP)) {
+		*ptr++ = htonl((leftover_highbyte << 24) |
+			       (leftover_lowbyte << 16) |
 			       (TCPOPT_NOP << 8) |
 			       TCPOPT_NOP);
-		leftover_bytes = NOP_LEFTOVER;
-		leftover_size = 2;
+		leftover_highbyte = TCPOPT_NOP;
+		leftover_lowbyte = TCPOPT_NOP;
 	}
 
 	if (unlikely(OPTION_FAST_OPEN_COOKIE & options)) {
