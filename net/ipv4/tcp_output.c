@@ -4006,7 +4006,7 @@ struct sk_buff *tcp_make_synack(const struct sock *sk, struct dst_entry *dst,
 	memset(th, 0, sizeof(struct tcphdr));
 	th->syn = 1;
 	th->ack = 1;
-	tcp_ecn_make_synack((struct sock *)sk, req, th, synack_type);
+	tcp_ecn_make_synack(req, th, synack_type);
 	th->source = htons(ireq->ir_num);
 	th->dest = ireq->ir_rmt_port;
 	skb->mark = ireq->ir_mark;
@@ -4611,6 +4611,10 @@ int tcp_rtx_synack(const struct sock *sk, struct request_sock *req)
 		WRITE_ONCE(tcp_rsk(req)->txhash, net_tx_rndhash());
 	res = af_ops->send_synack(sk, NULL, &fl, req, NULL, TCP_SYNACK_RETRANS,
 				  NULL);
+	if (tcp_rsk(req)->accecn_ok &&
+	    (tcp_rsk(req)->accecn_fail_mode | TCP_ACCECN_ACE_FAIL_SEND))
+		tcp_accecn_fail_mode_set(tcp_sk(sk),
+					 TCP_ACCECN_ACE_FAIL_SEND);
 	if (!res) {
 		TCP_INC_STATS(sock_net(sk), TCP_MIB_RETRANSSEGS);
 		NET_INC_STATS(sock_net(sk), LINUX_MIB_TCPSYNRETRANS);

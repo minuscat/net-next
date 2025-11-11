@@ -7534,6 +7534,10 @@ int tcp_conn_request(struct request_sock_ops *rsk_ops,
 	if (fastopen_sk) {
 		af_ops->send_synack(fastopen_sk, dst, &fl, req,
 				    &foc, TCP_SYNACK_FASTOPEN, skb);
+		if (tcp_rsk(req)->accecn_ok &&
+		    (tcp_rsk(req)->accecn_fail_mode | TCP_ACCECN_ACE_FAIL_SEND))
+			tcp_accecn_fail_mode_set(tcp_sk(fastopen_sk),
+						 TCP_ACCECN_ACE_FAIL_SEND);
 		/* Add the child socket directly into the accept queue */
 		if (!inet_csk_reqsk_queue_add(sk, req, fastopen_sk)) {
 			bh_unlock_sock(fastopen_sk);
@@ -7559,6 +7563,10 @@ int tcp_conn_request(struct request_sock_ops *rsk_ops,
 				    !want_cookie ? TCP_SYNACK_NORMAL :
 						   TCP_SYNACK_COOKIE,
 				    skb);
+		if (tcp_rsk(req)->accecn_ok &&
+		    (tcp_rsk(req)->accecn_fail_mode | TCP_ACCECN_ACE_FAIL_SEND))
+			tcp_accecn_fail_mode_set(tcp_sk(sk),
+						 TCP_ACCECN_ACE_FAIL_SEND);
 		if (want_cookie) {
 			reqsk_free(req);
 			return 0;
