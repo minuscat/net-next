@@ -662,7 +662,7 @@ static inline void
 tcp_ecn_make_synack(struct sock *sk, const struct request_sock *req,
 		    struct tcphdr *th, enum tcp_synack_type synack_type)
 {
-	if (synack_type != TCP_SYNACK_RETRANS || !req->num_timeout) {
+	if (!req->num_timeout) {
 		if (tcp_rsk(req)->accecn_ok)
 			tcp_accecn_echo_syn_ect(th, tcp_rsk(req)->syn_ect_rcv);
 		else if (inet_rsk(req)->ecn_ok)
