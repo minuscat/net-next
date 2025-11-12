@@ -335,8 +335,9 @@ static void tcp_ecn_send(struct sock *sk, struct sk_buff *skb,
 
 	if (tcp_ecn_mode_accecn(tp)) {
 		if (!tcp_accecn_ace_fail_recv(tp) &&
-		    !tcp_accecn_ace_fail_send(tp))
-			INET_ECN_xmit(sk);
+		    !tcp_accecn_ace_fail_send(tp)) {
+			INET_ECN_xmit_ect_1_establish(sk);
+		}
 		tcp_accecn_set_ace(tp, skb, th);
 		skb_shinfo(skb)->gso_type |= SKB_GSO_TCP_ACCECN;
 	} else {
