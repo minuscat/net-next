@@ -653,8 +653,8 @@ static inline void tcp_ecn_clear_syn(struct sock *sk, struct sk_buff *skb)
 }
 
 static inline void
-tcp_ecn_make_synack(struct sock *sk, const struct request_sock *req,
-		    struct tcphdr *th, enum tcp_synack_type synack_type)
+tcp_ecn_make_synack(const struct request_sock *req, struct tcphdr *th,
+		    enum tcp_synack_type synack_type)
 {
 	if (!req->num_timeout) {
 		if (tcp_rsk(req)->accecn_ok)
@@ -665,7 +665,6 @@ tcp_ecn_make_synack(struct sock *sk, const struct request_sock *req,
 		th->ae  = 0;
 		th->cwr = 0;
 		th->ece = 0;
-		tcp_accecn_fail_mode_set(tcp_sk(sk), TCP_ACCECN_ACE_FAIL_SEND);
 	}
 }
 
