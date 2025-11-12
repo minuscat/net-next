@@ -38,6 +38,12 @@ static inline void INET_ECN_xmit_ect_1_negotiation(struct sock *sk)
 	__INET_ECN_xmit(sk, tcp_ca_ect_1_negotiation(sk));
 }
 
+/* Apply either ECT(0) or ECT(1) based on TCP_CONG_ECT_1_ESTABLISH flag */
+static inline void INET_ECN_xmit_ect_1_establish(struct sock *sk)
+{
+        __INET_ECN_xmit(sk, tcp_sk(sk)->ecn_flags & TCP_ECN_ECT_1_ESTABLISH);
+}
+
 static inline void tcp_ecn_queue_cwr(struct tcp_sock *tp)
 {
 	/* Do not set CWR if in AccECN mode! */
