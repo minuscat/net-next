@@ -328,14 +328,19 @@ static void tcp_ecn_send(struct sock *sk, struct sk_buff *skb,
 			 struct tcphdr *th, int tcp_header_len)
 {
 	struct tcp_sock *tp = tcp_sk(sk);
+	bool ecn_ect_1;
 
 	if (!tcp_ecn_mode_any(tp))
 		return;
 
 	if (tcp_ecn_mode_accecn(tp)) {
 		if (!tcp_accecn_ace_fail_recv(tp) &&
-		    !tcp_accecn_ace_fail_send(tp))
-			INET_ECN_xmit(sk);
+		    !tcp_accecn_ace_fail_send(tp)) {
+			if (tp->ecn_flags & TCP_ECN_ECT_1)
+				__INET_ECN_xmit(sk, true);
+			else
+				INET_ECN_xmit(sk);
+		}
 		tcp_accecn_set_ace(tp, skb, th);
 		skb_shinfo(skb)->gso_type |= SKB_GSO_TCP_ACCECN;
 	} else {
