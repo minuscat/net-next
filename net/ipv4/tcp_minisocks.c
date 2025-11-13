@@ -763,7 +763,13 @@ struct sock *tcp_check_req(struct sock *sk, struct sk_buff *skb,
 				}
 			}
 			if (!tcp_rtx_synack(sk, req)) {
+				u8 fail_mode = TCP_ACCECN_ACE_FAIL_SEND;
 				unsigned long expires = jiffies;
+
+				if (req->num_retrans > 1 &&
+				    tcp_rsk(req)->accecn_ok)
+					tcp_accecn_fail_mode_set(tcp_sk(sk),
+								 fail_mode);
 
 				expires += reqsk_timeout(req, TCP_RTO_MAX);
 				if (!fastopen)
