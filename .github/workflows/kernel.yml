@@ -88,7 +88,7 @@ jobs:
         mv *.deb debian_build
         zip -r l4s-${{ steps.extract_branch.outputs.branch }}.zip debian_build
     - name: Release tip build
-      uses: pyTooling/Actions/releaser@main
+      uses: pyTooling/Actions/releaser@v6.7.0
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         tag: ${{ steps.extract_branch.outputs.branch }}-build
