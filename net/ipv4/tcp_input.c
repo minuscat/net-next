@@ -4870,8 +4870,8 @@ static void tcp_dsack_extend(struct sock *sk, u32 seq, u32 end_seq)
 		tcp_sack_extend(tp->duplicate_sack, seq, end_seq);
 }
 
-static void tcp_rcv_spurious_retrans(struct sock *sk, const struct sk_buff *skb,
-				     bool dsack_valid)
+static void tcp_rcv_spurious_retrans(struct sock *sk,
+				     const struct sk_buff *skb)
 {
 	struct tcp_sock *tp = tcp_sk(sk);
 
@@ -4899,9 +4899,8 @@ static void tcp_rcv_spurious_retrans(struct sock *sk, const struct sk_buff *skb,
 	 * stop sending AccECN option in all subsequent ACKs.
 	 */
 	if (tcp_ecn_mode_accecn(tp) &&
-	    dsack_valid &&
-	    TCP_SKB_CB(skb)->seq == tp->duplicate_sack[0].start_seq &&
-	    tp->accecn_opt_sent)
+	    tp->accecn_opt_sent_w_dsack &&
+	    TCP_SKB_CB(skb)->seq == tp->duplicate_sack[0].start_seq)
 		tcp_accecn_fail_mode_set(tp, TCP_ACCECN_OPT_FAIL_SEND);
 }
 
@@ -4917,7 +4916,7 @@ static void tcp_send_dupack(struct sock *sk, const struct sk_buff *skb)
 		if (tcp_is_sack(tp) && READ_ONCE(sock_net(sk)->ipv4.sysctl_tcp_dsack)) {
 			u32 end_seq = TCP_SKB_CB(skb)->end_seq;
 
-			tcp_rcv_spurious_retrans(sk, skb, true);
+			tcp_rcv_spurious_retrans(sk, skb);
 			if (after(TCP_SKB_CB(skb)->end_seq, tp->rcv_nxt))
 				end_seq = tp->rcv_nxt;
 			tcp_dsack_set(sk, TCP_SKB_CB(skb)->seq, end_seq);
@@ -5458,7 +5457,6 @@ static void tcp_data_queue(struct sock *sk, struct sk_buff *skb)
 {
 	struct tcp_sock *tp = tcp_sk(sk);
 	enum skb_drop_reason reason;
-	bool dsack_valid;
 	bool fragstolen;
 	int eaten;
 
@@ -5478,7 +5476,6 @@ static void tcp_data_queue(struct sock *sk, struct sk_buff *skb)
 	__skb_pull(skb, tcp_hdr(skb)->doff * 4);
 
 	reason = SKB_DROP_REASON_NOT_SPECIFIED;
-	dsack_valid = tp->rx_opt.dsack;
 	tp->rx_opt.dsack = 0;
 
 	/*  Queue data for delivery to the user.
@@ -5548,7 +5545,7 @@ queue_and_out:
 	}
 
 	if (!after(TCP_SKB_CB(skb)->end_seq, tp->rcv_nxt)) {
-		tcp_rcv_spurious_retrans(sk, skb, true);
+		tcp_rcv_spurious_retrans(sk, skb);
 		/* A retransmit, 2nd most common case.  Force an immediate ack. */
 		reason = SKB_DROP_REASON_TCP_OLD_DATA;
 		NET_INC_STATS(sock_net(sk), LINUX_MIB_DELAYEDACKLOST);
