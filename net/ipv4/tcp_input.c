@@ -4917,7 +4917,7 @@ static void tcp_send_dupack(struct sock *sk, const struct sk_buff *skb)
 		if (tcp_is_sack(tp) && READ_ONCE(sock_net(sk)->ipv4.sysctl_tcp_dsack)) {
 			u32 end_seq = TCP_SKB_CB(skb)->end_seq;
 
-			tcp_rcv_spurious_retrans(sk, skb, tp->rx_opt.dsack);
+			tcp_rcv_spurious_retrans(sk, skb, true);
 			if (after(TCP_SKB_CB(skb)->end_seq, tp->rcv_nxt))
 				end_seq = tp->rcv_nxt;
 			tcp_dsack_set(sk, TCP_SKB_CB(skb)->seq, end_seq);
