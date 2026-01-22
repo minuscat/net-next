@@ -5548,7 +5548,7 @@ queue_and_out:
 	}
 
 	if (!after(TCP_SKB_CB(skb)->end_seq, tp->rcv_nxt)) {
-		tcp_rcv_spurious_retrans(sk, skb, dsack_valid);
+		tcp_rcv_spurious_retrans(sk, skb, true);
 		/* A retransmit, 2nd most common case.  Force an immediate ack. */
 		reason = SKB_DROP_REASON_TCP_OLD_DATA;
 		NET_INC_STATS(sock_net(sk), LINUX_MIB_DELAYEDACKLOST);
