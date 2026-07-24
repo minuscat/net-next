@@ -824,9 +824,6 @@ unsigned int tcp_sync_mss(struct sock *sk, u32 pmtu);
 unsigned int tcp_current_mss(struct sock *sk);
 u32 tcp_clamp_probe0_to_user_timeout(const struct sock *sk, u32 when);
 
-u32 tcp_tso_autosize(const struct sock *sk, unsigned int mss_now,
-		     int min_tso_segs);
-
 /* Bound MSS / TSO packet size with the half of the window */
 static inline int tcp_bound_to_half_wnd(struct tcp_sock *tp, int pktsize)
 {
@@ -1286,9 +1283,11 @@ enum tcp_ca_ack_event_flags {
 #define TCP_CONG_ECT_1_NEGOTIATION	BIT(3)
 /* Cannot fallback to RFC3168 during AccECN negotiation */
 #define TCP_CONG_NO_FALLBACK_RFC3168	BIT(4)
+/* Congestion cotnrol provides the exact TSO segment numbers  */
+#define TCP_CONG_EXACT_TSO_SEGS		BIT(5)
 #define TCP_CONG_MASK  (TCP_CONG_NON_RESTRICTED | TCP_CONG_NEEDS_ECN | \
 			TCP_CONG_NEEDS_ACCECN | TCP_CONG_ECT_1_NEGOTIATION | \
-			TCP_CONG_NO_FALLBACK_RFC3168)
+			TCP_CONG_NO_FALLBACK_RFC3168 | TCP_CONG_EXACT_TSO_SEGS)
 
 union tcp_cc_info;
 
@@ -1364,14 +1363,8 @@ struct tcp_congestion_ops {
 	/* hook for packet ack accounting (optional) */
 	void (*pkts_acked)(struct sock *sk, const struct ack_sample *sample);
 
-	/*
-	 * Override tcp_tso_autosize (optional)
-	 *
-	 * If provided, this callback returns the final TSO segment number
-	 * and will bypass tcp_tso_autosize() entirely. The implementation
-	 * must derive an appropriate value and ensure the result is valid.
-	 */
-	u32 (*tso_segs)(struct sock *sk, u32 mss_now);
+	/* Override sysctl_tcp_min_tso_segs or tcp_tso_autosize (optional) */
+	u32 (*tso_segs)(struct sock *sk);
 
 	/* new value of cwnd after loss (required) */
 	u32  (*undo_cwnd)(struct sock *sk);

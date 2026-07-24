@@ -2253,8 +2253,8 @@ static bool tcp_nagle_check(bool partial, const struct tcp_sock *tp,
  * for every 2^9 usec (aka 512 us) of RTT, so that the RTT-based allowance
  * is below 1500 bytes after 6 * ~500 usec = 3ms.
  */
-u32 tcp_tso_autosize(const struct sock *sk, unsigned int mss_now,
-		     int min_tso_segs)
+static u32 tcp_tso_autosize(const struct sock *sk, unsigned int mss_now,
+			    int min_tso_segs)
 {
 	unsigned long bytes;
 	u32 r;
@@ -2269,7 +2269,6 @@ u32 tcp_tso_autosize(const struct sock *sk, unsigned int mss_now,
 
 	return max_t(u32, bytes / mss_now, min_tso_segs);
 }
-EXPORT_SYMBOL(tcp_tso_autosize);
 
 /* Return the number of segments we want in the skb we are transmitting.
  * See if congestion control module wants to decide; otherwise, autosize.
@@ -2281,9 +2280,20 @@ static u32 tcp_tso_segs(struct sock *sk, unsigned int mss_now)
 
 	min_tso = READ_ONCE(sock_net(sk)->ipv4.sysctl_tcp_min_tso_segs);
 
-	tso_segs = ca_ops->tso_segs ?
-			ca_ops->tso_segs(sk, mss_now) :
-			tcp_tso_autosize(sk, mss_now, min_tso);
+	if (ca_ops->tso_segs) {
+		if (ca_ops->flags & TCP_CONG_EXACT_TSO_SEGS) {
+			u32 (*exact_tso_segs)(struct sock *sk, u32 mss);
+
+			exact_tso_segs = (void *)ca_ops->tso_segs;
+			tso_segs = exact_tso_segs(sk, mss_now);
+		} else {
+			min_tso = ca_ops->min_tso_segs(sk);
+			tso_segs = tcp_tso_autosize(sk, mss_now, min_tso);
+		}
+	} else {
+		min_tso = READ_ONCE(sock_net(sk)->ipv4.sysctl_tcp_min_tso_segs);
+		tso_segs = tcp_tso_autosize(sk, mss_now, min_tso);
+	}
 	return min_t(u32, tso_segs, sk->sk_gso_max_segs);
 }
 
